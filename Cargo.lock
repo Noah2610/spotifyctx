@@ -143,6 +143,7 @@ checksum = "b94f61472cee1439c0b966b47e3aca9ae07e45d070759512cd390ea2bebc6675"
 [[package]]
 name = "cmus-status-line"
 version = "1.1.1"
+source = "git+https://github.com/Noah2610/cmus-status-line?branch=master#d3fc86972f4f7b090eb8b8e84c6c22266309ca4b"
 dependencies = [
  "dirs",
  "htmlescape",

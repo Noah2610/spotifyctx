@@ -5,4 +5,4 @@ edition = "2024"
 
 [dependencies]
 clap = { version = "4.5.48", features = ["derive"] }
-cmus-status-line = { path = "../cmus-status-line" }
+cmus-status-line = { branch = "master", git = "https://github.com/Noah2610/cmus-status-line" }
