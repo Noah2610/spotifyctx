@@ -1,0 +1,156 @@
+#!/bin/bash
+#
+# [spotifyctx] is a small wrapper script around [spotify_player]
+# for displaying playback information.
+# Also uses [playback-formatter] rust cli wrapper for
+# [cmus-status-line] for its configurable status-line system.
+#
+# [spotifyctx]: https://github.com/Noah2610/spotifyctx
+# [spotify_player]: https://github.com/aome510/spotify-player
+# [playback-formatter]: https://github.com/Noah2610/spotifyctx/tree/main/playback-formatter
+# [cmus-status-line]: https://github.com/Noah2610/cmus-status-line
+
+set -eo pipefail
+
+# shellcheck source=./util.sh disable=SC2155
+function _dl_util_sh {
+    local UTIL_VERSION="v2.2.6"
+    local dir="$( dirname "$1" )"
+    [ -f "${dir}/util.sh" ] || bash "${dir}/download-util.sh" "$UTIL_VERSION" || exit 1
+    source "${dir}/util.sh"
+}; _dl_util_sh "$0"; unset -f _dl_util_sh
+
+SCRIPT_NAME="spotifyctx"
+FORMATTER="playback-formatter"
+FORMATTER_FORMAT="${HOME}/.config/${SCRIPT_NAME}/format.ron"
+ARG_ACTION=artist-and-name
+
+function main {
+    check spotify_player
+
+    parse_args "$@"
+
+    case "$ARG_ACTION" in
+        artist-and-name) print_artist_and_name ;;
+        progress) print_progress ;;
+        progress-bar) print_progress_bar ;;
+        *) err "Unknown action: $ARG_ACTION" ;;
+    esac
+}
+
+function parse_args {
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            track|artist-and-name) ARG_ACTION=artist-and-name ;;
+            p|progress) ARG_ACTION=progress ;;
+            b|bar|progress-bar) ARG_ACTION=progress-bar ;;
+            help|--help|-h) help_and_exit ;;
+            *) err "Unknown argument: $1" ;;
+        esac
+        shift
+    done
+}
+
+function spotify_get_playback {
+    spotify_player get key playback
+}
+
+function print_artist_and_name {
+     spotify_get_playback \
+        | jq -r '.item.artists[0].name + " - " + .item.name'
+}
+
+function print_progress {
+    check bc
+
+    local -a lines
+    readarray -t lines < <( spotify_get_playback \
+        | jq -r '(.progress_ms | tostring) + "\n" + (.item.duration_ms | tostring)'
+    )
+
+    bc -l <<< "${lines[0]} / ${lines[1]} * 100" | xargs printf "%.0f\n"
+}
+
+function print_progress_bar {
+    check "$FORMATTER"
+    [ -f "$FORMATTER_FORMAT" ] || init_formatter_format
+
+    local -a lines
+    readarray -t lines < <( spotify_get_playback \
+        | jq -r '
+            (if .is_playing then "playing" else "paused" end) + "\n"
+            + .item.name + "\n"
+            + (.progress_ms | tostring) + "\n"
+            + (.item.duration_ms | tostring) + "\n"
+            + .item.artists.[0].name + "\n"
+            + .item.album.name' )
+
+    <"$FORMATTER_FORMAT" $FORMATTER \
+        --unit ms \
+        --format - \
+        --status "${lines[0]}" \
+        --title "${lines[1]}" \
+        --progress "${lines[2]}" \
+        --duration "${lines[3]}" \
+        --artist "${lines[4]}" \
+        --album "${lines[5]}"
+}
+
+function init_formatter_format {
+# ⏸
+# ▶ ◀
+# ━
+# ████
+# ■■■
+# ▬▬▬
+# ⯀⯀⯀⯀
+# ⯇⯈
+# ◄▬▬▬▬————►
+# ◀■■■■———▶
+
+    local dir
+    dir="$( dirname "$FORMATTER_FORMAT" )"
+    [ -d "$dir" ] || mkdir -p "$dir"
+
+    cat > "$FORMATTER_FORMAT" <<EOF
+Container([
+    If(
+        IsStatus(Playing),
+        Container([
+            If(
+                HasTag("artist"),
+                Container([
+                    Truncate(Tag("artist"), 30),
+                    Text(" "),
+                ]),
+            ),
+
+            If(
+                And(HasTag("artist"), HasTag("album")),
+                Text("/ "),
+            ),
+
+            If(
+                HasTag("album"),
+                Truncate(Tag("album"), 30),
+            ),
+
+            Text(" "),
+            ProgressBar("◀■■■■———▶"),
+            Text(" "),
+            Truncate(Title, 60),
+            Text(" ▶"),
+        ]),
+    ),
+    If(
+        IsStatus(Paused),
+        Container([
+            Text("⏸ "),
+            Truncate(Title, 30),
+        ]),
+    ),
+])
+EOF
+}
+
+main "$@"
