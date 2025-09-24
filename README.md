@@ -3,10 +3,21 @@
 [`spotifyctx`] is a small wrapper script around [`spotify_player`]
 for displaying spotify playback information.
 Also uses [`playback-formatter`] rust cli wrapper for
-[`cmus-status-line`] for its configurable status-line system.
+[`cmus-status-line`] for its configurable progress-bar.
 
 ## Usage
-...
+See `spotifyctx --help` for full usage information.  
+Examples:  
+```
+$ spotifyctx track     # Display currently playing track's artist and name
+Chris Christodoulou - Once in a Lullaby
+
+$ spotifyctx progress  # Display playback progress in percentage
+42
+
+$ spotifyctx bar       # Display playback status with progress-bar (configurable format)
+Crystal Castles ◀■■■■———▶ Knights ▶
+```
 
 ## License
 Distributed under the terms of the [MIT License](./LICENSE)

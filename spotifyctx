@@ -71,8 +71,13 @@ Commands:
 
     ${H}b${R}, ${H}bar${R}, ${H}progress-bar${R}
         Print a progress bar with track info.
-        This uses ${C}${FORMATTER}${R} as a rust cli wrapper around
-        cmus-status-line for its configurable status-line system.
+        Depends on ${C}${FORMATTER}${R} as a rust cli wrapper around
+        ${C}cmus-status-line${R} for its configurable progress-bar.
+        Install with:
+            ${C}cargo install --git \\
+                ${L}https://github.com/Noah2610/spotifyctx/tree/main/playback-formatter${R}
+        Or locally if you cloned the repo:
+            ${C}cargo install --path ./playback-formatter${R}
         Reads a RON format file from, or creates a default one at:
             ${C}${FORMATTER_FORMAT}${R}
         See the ${C}cmus-status-line${R} README for syntax documentation:
