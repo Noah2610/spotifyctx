@@ -51,16 +51,52 @@ function parse_args {
     done
 }
 
+function help_and_exit {
+    local R='\033[0m'    # Reset
+    local H='\033[32;1m' # Highlight
+    local C='\033[36m'   # Code
+    local L='\033[34;4m' # Link
+
+    printf "%b" "\
+Usage: ${H}${SCRIPT_NAME}${R} [command]
+
+Commands:
+    ${H}track${R}, ${H}artist-and-name${R}
+        Print current artist and track name.
+        This is the ${H}default${R} if no command is given.
+
+    ${H}p${R}, ${H}progress${R}
+        Print current playback progress in percent [0-100].
+        Examples: 42, 100
+
+    ${H}b${R}, ${H}bar${R}, ${H}progress-bar${R}
+        Print a progress bar with track info.
+        This uses ${C}${FORMATTER}${R} as a rust cli wrapper around
+        cmus-status-line for its configurable status-line system.
+        Reads a RON format file from, or creates a default one at:
+            ${C}${FORMATTER_FORMAT}${R}
+        See the ${C}cmus-status-line${R} README for syntax documentation:
+            ${L}https://github.com/Noah2610/cmus-status-line${R}
+
+    ${H}help${R}, ${H}--help${R}, ${H}-h${R}
+        Prints this help message and exits.
+"
+    exit 0
+}
+
 function spotify_get_playback {
     spotify_player get key playback
 }
 
 function print_artist_and_name {
-     spotify_get_playback \
+    check jq
+
+    spotify_get_playback \
         | jq -r '.item.artists[0].name + " - " + .item.name'
 }
 
 function print_progress {
+    check jq
     check bc
 
     local -a lines
@@ -72,7 +108,9 @@ function print_progress {
 }
 
 function print_progress_bar {
+    check jq
     check "$FORMATTER"
+
     [ -f "$FORMATTER_FORMAT" ] || init_formatter_format
 
     local -a lines
@@ -96,6 +134,7 @@ function print_progress_bar {
         --album "${lines[5]}"
 }
 
+# Creates the default format file at $FORMATTER_FORMAT
 function init_formatter_format {
 # ⏸
 # ▶ ◀
