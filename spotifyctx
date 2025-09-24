@@ -23,27 +23,32 @@ function _dl_util_sh {
 SCRIPT_NAME="spotifyctx"
 FORMATTER="playback-formatter"
 FORMATTER_FORMAT="${HOME}/.config/${SCRIPT_NAME}/format.ron"
-ARG_ACTION=artist-and-name
+ARG_COMMAND=artist-and-name
+
+R='\033[0m'    # Reset
+H='\033[32;1m' # Highlight
+C='\033[36m'   # Code
+L='\033[34;4m' # Link
 
 function main {
     check spotify_player
 
     parse_args "$@"
 
-    case "$ARG_ACTION" in
+    case "$ARG_COMMAND" in
         artist-and-name) print_artist_and_name ;;
         progress) print_progress ;;
         progress-bar) print_progress_bar ;;
-        *) err "Unknown action: $ARG_ACTION" ;;
+        *) err "Unknown command: $ARG_COMMAND" ;;
     esac
 }
 
 function parse_args {
     while [ $# -gt 0 ]; do
         case "$1" in
-            track|artist-and-name) ARG_ACTION=artist-and-name ;;
-            p|progress) ARG_ACTION=progress ;;
-            b|bar|progress-bar) ARG_ACTION=progress-bar ;;
+            track|artist-and-name) ARG_COMMAND=artist-and-name ;;
+            p|progress) ARG_COMMAND=progress ;;
+            b|bar|progress-bar) ARG_COMMAND=progress-bar ;;
             help|--help|-h) help_and_exit ;;
             *) err "Unknown argument: $1" ;;
         esac
@@ -52,11 +57,6 @@ function parse_args {
 }
 
 function help_and_exit {
-    local R='\033[0m'    # Reset
-    local H='\033[32;1m' # Highlight
-    local C='\033[36m'   # Code
-    local L='\033[34;4m' # Link
-
     printf "%b" "\
 Usage: ${H}${SCRIPT_NAME}${R} [command]
 
@@ -73,9 +73,8 @@ Commands:
         Print a progress bar with track info.
         Depends on ${C}${FORMATTER}${R} as a rust cli wrapper around
         ${C}cmus-status-line${R} for its configurable progress-bar.
-        Install with:
-            ${C}cargo install --git \\
-                ${L}https://github.com/Noah2610/spotifyctx/tree/main/playback-formatter${R}
+        Install ${B}playback-formatter${R} with:
+            ${C}cargo install --git ${L}https://github.com/Noah2610/spotifyctx${R}
         Or locally if you cloned the repo:
             ${C}cargo install --path ./playback-formatter${R}
         Reads a RON format file from, or creates a default one at:
@@ -114,7 +113,8 @@ function print_progress {
 
 function print_progress_bar {
     check jq
-    check "$FORMATTER"
+    is_available "$FORMATTER" || \
+        err "${C}${FORMATTER}${R} not installed.\nSee ${C}${SCRIPT_NAME} --help${R} for installation instructions."
 
     [ -f "$FORMATTER_FORMAT" ] || init_formatter_format
 
